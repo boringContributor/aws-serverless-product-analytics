@@ -1,0 +1,22 @@
+[package]
+name = "ingestion"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lambda_runtime = "0.13"
+lambda_http = "0.13"
+tokio = { version = "1", features = ["macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-kinesis = "1.50"
+chrono = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[profile.release]
+opt-level = 'z'     # Optimize for size
+lto = true          # Enable link-time optimization
+codegen-units = 1   # Reduce parallel code generation units
+strip = true        # Strip symbols

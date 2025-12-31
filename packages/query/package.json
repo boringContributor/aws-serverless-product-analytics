@@ -1,0 +1,23 @@
+{
+  "name": "@analytics/query",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc && pnpm run openapi",
+    "openapi": "openapi read openapi.yml --json > src/openapi/definition.json && openapi typegen openapi.yml --backend > ../common/openapi.d.ts"
+  },
+  "dependencies": {
+    "@analytics/common": "workspace:*",
+    "@analytics/storage": "workspace:*",
+    "@middy/core": "^6.4.5",
+    "http-errors": "^2.0.1",
+    "openapi-backend": "^5.12.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/http-errors": "^2.0.5",
+    "openapicmd": "^2.7.0",
+    "typescript": "^5.6.3"
+  }
+}

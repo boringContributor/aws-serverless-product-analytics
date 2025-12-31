@@ -1,0 +1,1369 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Product Analytics Query API",
+    "description": "Self-hosted serverless product analytics API for querying event data, page views, user behavior, and web performance metrics.\n\n## Authentication\nThe API key identifies your organization and scopes all queries to your data.\nAll endpoints require authentication via the `X-API-Key` header with a valid API key (format: `pa_*`).\n\n## Rate Limits\n- Query API: 100 requests/second, 200 burst\n\n## Time Ranges\nMost endpoints accept `startDate` and `endDate` query parameters (YYYY-MM-DD format).\nDefault: Last 7 days if not specified.\n",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Product Analytics API"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1",
+      "description": "Production API Gateway"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Analytics",
+      "description": "Core analytics metrics and overview"
+    },
+    {
+      "name": "Pages",
+      "description": "Page view statistics and referrers"
+    },
+    {
+      "name": "Users",
+      "description": "User activity and behavior"
+    },
+    {
+      "name": "Devices",
+      "description": "Device, browser, and OS statistics"
+    },
+    {
+      "name": "Geography",
+      "description": "Geographic distribution of visitors"
+    },
+    {
+      "name": "Performance",
+      "description": "Web Vitals and performance metrics"
+    }
+  ],
+  "paths": {
+    "/analytics/overview": {
+      "get": {
+        "summary": "getOverview",
+        "description": "Returns high-level analytics metrics including total events,\npage views, unique sessions, and unique visitors.\nScoped to your organization via the API key.\n",
+        "operationId": "getOverview",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/EventType"
+          },
+          {
+            "$ref": "#/components/parameters/Country"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Overview metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewMetrics"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/analytics/timeseries": {
+      "get": {
+        "summary": "Get time-series data",
+        "description": "Returns time-series data for events, page views, sessions, and visitors\nover the specified time range. Useful for creating charts and graphs.\n",
+        "operationId": "getTimeSeries",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Granularity"
+          },
+          {
+            "$ref": "#/components/parameters/EventType"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Time-series data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "timeseries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TimeSeriesPoint"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/pages": {
+      "get": {
+        "summary": "Get page view statistics",
+        "description": "Returns statistics for the most viewed pages including page views,\nunique sessions, and unique visitors per page.\n",
+        "operationId": "getPageViews",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/PagePath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page view statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pageviews": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PageViewStat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/pages/top-referrers": {
+      "get": {
+        "summary": "Get referrer statistics",
+        "description": "Returns statistics about where traffic is coming from, grouped by\nreferrer domain. Includes visit counts and unique sessions.\n",
+        "operationId": "getReferrers",
+        "tags": [
+          "Pages"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Referrer statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "referrers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReferrerStat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/devices": {
+      "get": {
+        "summary": "Get device statistics",
+        "description": "Returns statistics about devices, browsers, and operating systems\nused by visitors.\n",
+        "operationId": "getDeviceStats",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceStats"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/geo": {
+      "get": {
+        "summary": "Get geographic statistics",
+        "description": "Returns geographic distribution of visitors by country and city,\nincluding page views, unique sessions, and unique visitors per location.\n",
+        "operationId": "getGeoStats",
+        "tags": [
+          "Geography"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Country"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Geographic statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GeoStat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/webvitals": {
+      "get": {
+        "summary": "Get Web Vitals metrics",
+        "description": "Returns Core Web Vitals performance metrics including LCP (Largest Contentful Paint),\nFID (First Input Delay), CLS (Cumulative Layout Shift), and TTFB (Time to First Byte).\nIncludes percentiles and counts for good/needs improvement/poor ratings.\n",
+        "operationId": "getWebVitals",
+        "tags": [
+          "Performance"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/PagePath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Web Vitals metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metrics": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebVitalMetric"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/active": {
+      "get": {
+        "summary": "Get active users",
+        "description": "Returns a list of currently active users based on recent activity\nwithin the specified time range.\n",
+        "operationId": "getActiveUsers",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "description": "User identifier"
+                          },
+                          "lastSeen": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Last activity timestamp"
+                          },
+                          "eventCount": {
+                            "type": "integer",
+                            "description": "Number of events for this user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/users/{userId}/events": {
+      "get": {
+        "summary": "Get user event stream",
+        "description": "Returns all events for a specific user, useful for analyzing\nindividual user journeys and behavior patterns.\n",
+        "operationId": "getUserEvents",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "User identifier",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User events retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AnalyticsEvent"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "summary": "Get events list",
+        "description": "Returns a list of events with filtering options.\n",
+        "operationId": "getEvents",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/EventType"
+          },
+          {
+            "$ref": "#/components/parameters/UserId"
+          },
+          {
+            "$ref": "#/components/parameters/SessionId"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AnalyticsEvent"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/events/{eventId}": {
+      "get": {
+        "summary": "Get event by ID",
+        "description": "Returns details for a specific event by its identifier.\n",
+        "operationId": "getEvent",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "description": "Event identifier",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/funnels": {
+      "post": {
+        "summary": "Analyze conversion funnel",
+        "description": "Analyzes a conversion funnel by tracking user progression through\na series of events or page views.\n",
+        "operationId": "analyzeFunnel",
+        "tags": [
+          "Analytics"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "steps"
+                ],
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "description": "Ordered list of funnel steps",
+                    "minItems": 2,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "eventType"
+                      ],
+                      "properties": {
+                        "eventType": {
+                          "type": "string",
+                          "description": "Event type or page path"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Display name for this step"
+                        }
+                      }
+                    }
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Start date (YYYY-MM-DD)"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "End date (YYYY-MM-DD)"
+                  }
+                }
+              },
+              "example": {
+                "steps": [
+                  {
+                    "eventType": "pageview",
+                    "name": "Landing Page"
+                  },
+                  {
+                    "eventType": "signup_clicked",
+                    "name": "Signup Clicked"
+                  },
+                  {
+                    "eventType": "signup_completed",
+                    "name": "Signup Completed"
+                  }
+                ],
+                "startDate": "2025-01-01",
+                "endDate": "2025-01-31"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Funnel analysis completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "eventType": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "description": "Number of users who reached this step"
+                          },
+                          "dropoffRate": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "Percentage who dropped off after this step"
+                          },
+                          "conversionRate": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "Percentage who converted from first step"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for authentication (format: pa_*).\nThe API key identifies your organization and automatically scopes all queries to your data.\n"
+      }
+    },
+    "parameters": {
+      "StartDate": {
+        "name": "startDate",
+        "in": "query",
+        "description": "Start date for the query (YYYY-MM-DD). Defaults to 7 days ago.",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "example": "2025-01-01"
+      },
+      "EndDate": {
+        "name": "endDate",
+        "in": "query",
+        "description": "End date for the query (YYYY-MM-DD). Defaults to today.",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "example": "2025-01-31"
+      },
+      "EventType": {
+        "name": "eventType",
+        "in": "query",
+        "description": "Filter by event type (e.g., pageview, click, signup)",
+        "schema": {
+          "type": "string"
+        },
+        "example": "pageview"
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "query",
+        "description": "Filter by user ID",
+        "schema": {
+          "type": "string"
+        },
+        "example": "user_123"
+      },
+      "SessionId": {
+        "name": "sessionId",
+        "in": "query",
+        "description": "Filter by session ID",
+        "schema": {
+          "type": "string"
+        },
+        "example": "sess_xyz789"
+      },
+      "PagePath": {
+        "name": "pagePath",
+        "in": "query",
+        "description": "Filter by page path (e.g., /home, /products)",
+        "schema": {
+          "type": "string"
+        },
+        "example": "/products"
+      },
+      "Country": {
+        "name": "country",
+        "in": "query",
+        "description": "Filter by country code (ISO 3166-1 alpha-2)",
+        "schema": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "example": "US"
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Maximum number of results to return",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 20
+        },
+        "example": 50
+      },
+      "Granularity": {
+        "name": "granularity",
+        "in": "query",
+        "description": "Time granularity for time-series data",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "hour",
+            "day"
+          ],
+          "default": "day"
+        },
+        "example": "day"
+      }
+    },
+    "schemas": {
+      "OverviewMetrics": {
+        "type": "object",
+        "description": "High-level analytics overview",
+        "properties": {
+          "totalEvents": {
+            "type": "integer",
+            "description": "Total number of events",
+            "example": 15234
+          },
+          "totalPageviews": {
+            "type": "integer",
+            "description": "Total number of page views",
+            "example": 8942
+          },
+          "uniqueSessions": {
+            "type": "integer",
+            "description": "Number of unique sessions",
+            "example": 3821
+          },
+          "uniqueVisitors": {
+            "type": "integer",
+            "description": "Number of unique visitors (by anonymous ID)",
+            "example": 2456
+          },
+          "uniqueUsers": {
+            "type": "integer",
+            "description": "Number of unique identified users",
+            "example": 892
+          }
+        }
+      },
+      "TimeSeriesPoint": {
+        "type": "object",
+        "description": "Single data point in a time series",
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp for this data point",
+            "example": "2025-01-15T00:00:00Z"
+          },
+          "events": {
+            "type": "integer",
+            "description": "Number of events",
+            "example": 543
+          },
+          "pageviews": {
+            "type": "integer",
+            "description": "Number of page views",
+            "example": 321
+          },
+          "uniqueSessions": {
+            "type": "integer",
+            "description": "Number of unique sessions",
+            "example": 142
+          },
+          "uniqueVisitors": {
+            "type": "integer",
+            "description": "Number of unique visitors",
+            "example": 98
+          }
+        }
+      },
+      "PageViewStat": {
+        "type": "object",
+        "description": "Statistics for a specific page",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Page path",
+            "example": "/products"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "description": "Page title",
+            "example": "Products - My Store"
+          },
+          "pageviews": {
+            "type": "integer",
+            "description": "Number of page views",
+            "example": 1234
+          },
+          "uniqueSessions": {
+            "type": "integer",
+            "description": "Number of unique sessions",
+            "example": 892
+          },
+          "uniqueVisitors": {
+            "type": "integer",
+            "description": "Number of unique visitors",
+            "example": 678
+          }
+        }
+      },
+      "ReferrerStat": {
+        "type": "object",
+        "description": "Statistics for a referrer domain",
+        "properties": {
+          "referrerDomain": {
+            "type": "string",
+            "description": "Referrer domain",
+            "example": "google.com"
+          },
+          "visits": {
+            "type": "integer",
+            "description": "Total visits from this referrer",
+            "example": 543
+          },
+          "uniqueSessions": {
+            "type": "integer",
+            "description": "Number of unique sessions",
+            "example": 421
+          }
+        }
+      },
+      "DeviceStats": {
+        "type": "object",
+        "description": "Device, browser, and OS statistics",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "deviceType": {
+                  "type": "string",
+                  "description": "Device type (desktop, mobile, tablet)",
+                  "example": "mobile"
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Number of events",
+                  "example": 4521
+                },
+                "uniqueSessions": {
+                  "type": "integer",
+                  "description": "Number of unique sessions",
+                  "example": 2134
+                }
+              }
+            }
+          },
+          "browsers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "browserName": {
+                  "type": "string",
+                  "description": "Browser name",
+                  "example": "Chrome"
+                },
+                "browserVersion": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Browser version",
+                  "example": "120.0"
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Number of events",
+                  "example": 3241
+                }
+              }
+            }
+          },
+          "operatingSystems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "osName": {
+                  "type": "string",
+                  "description": "Operating system name",
+                  "example": "iOS"
+                },
+                "osVersion": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "OS version",
+                  "example": "17.2"
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Number of events",
+                  "example": 2134
+                }
+              }
+            }
+          }
+        }
+      },
+      "GeoStat": {
+        "type": "object",
+        "description": "Geographic statistics for a location",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "Country name",
+            "example": "United States"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "description": "City name",
+            "example": "San Francisco"
+          },
+          "pageviews": {
+            "type": "integer",
+            "description": "Number of page views",
+            "example": 1234
+          },
+          "uniqueSessions": {
+            "type": "integer",
+            "description": "Number of unique sessions",
+            "example": 892
+          },
+          "uniqueVisitors": {
+            "type": "integer",
+            "description": "Number of unique visitors",
+            "example": 678
+          }
+        }
+      },
+      "WebVitalMetric": {
+        "type": "object",
+        "description": "Core Web Vitals performance metric",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "description": "Metric name (LCP, FID, CLS, TTFB)",
+            "example": "LCP",
+            "enum": [
+              "LCP",
+              "FID",
+              "CLS",
+              "TTFB"
+            ]
+          },
+          "p50": {
+            "type": "number",
+            "format": "float",
+            "description": "50th percentile value",
+            "example": 1234.5
+          },
+          "p75": {
+            "type": "number",
+            "format": "float",
+            "description": "75th percentile value",
+            "example": 2456.8
+          },
+          "p95": {
+            "type": "number",
+            "format": "float",
+            "description": "95th percentile value",
+            "example": 4321.2
+          },
+          "p99": {
+            "type": "number",
+            "format": "float",
+            "description": "99th percentile value",
+            "example": 6543.9
+          },
+          "goodCount": {
+            "type": "integer",
+            "description": "Number of good ratings",
+            "example": 8234
+          },
+          "needsImprovementCount": {
+            "type": "integer",
+            "description": "Number of needs improvement ratings",
+            "example": 1234
+          },
+          "poorCount": {
+            "type": "integer",
+            "description": "Number of poor ratings",
+            "example": 432
+          }
+        }
+      },
+      "AnalyticsEvent": {
+        "type": "object",
+        "description": "Individual analytics event",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Event identifier",
+            "example": "evt_abc123"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Type of event",
+            "example": "pageview"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (milliseconds)",
+            "example": 1704067200000
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Session identifier",
+            "example": "sess_def456"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "description": "User identifier",
+            "example": "user_ghi789"
+          },
+          "anonymousId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Anonymous visitor identifier",
+            "example": "anon_jkl012"
+          },
+          "properties": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Custom event properties",
+            "example": {
+              "button": "signup",
+              "plan": "pro"
+            }
+          },
+          "context": {
+            "$ref": "#/components/schemas/EventContext"
+          }
+        }
+      },
+      "EventContext": {
+        "type": "object",
+        "description": "Context information for an event",
+        "properties": {
+          "page": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "url": {
+                "type": "string",
+                "example": "https://example.com/products"
+              },
+              "title": {
+                "type": "string",
+                "example": "Products - My Store"
+              },
+              "path": {
+                "type": "string",
+                "example": "/products"
+              },
+              "referrer": {
+                "type": "string",
+                "example": "https://google.com"
+              }
+            }
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true,
+            "example": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X)"
+          },
+          "locale": {
+            "type": "string",
+            "nullable": true,
+            "example": "en-US"
+          },
+          "screen": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "width": {
+                "type": "integer",
+                "example": 1920
+              },
+              "height": {
+                "type": "integer",
+                "example": 1080
+              }
+            }
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true,
+            "description": "IP address (hashed for privacy)",
+            "example": "203.0.113.42"
+          },
+          "receivedAt": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Server timestamp when event was received",
+            "example": 1704067201234
+          },
+          "geo": {
+            "$ref": "#/components/schemas/GeoContext"
+          }
+        }
+      },
+      "GeoContext": {
+        "type": "object",
+        "description": "Geographic context",
+        "properties": {
+          "country": {
+            "type": "string",
+            "nullable": true,
+            "example": "United States"
+          },
+          "countryCode": {
+            "type": "string",
+            "nullable": true,
+            "example": "US"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true,
+            "example": "California"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "example": "San Francisco"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "example": 37.7749
+          },
+          "longitude": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "example": -122.4194
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "description": "Error response",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Invalid request"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed error message",
+            "example": "Invalid date format"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request - invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Bad request",
+              "message": "Invalid date format"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - invalid or missing API key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized",
+              "message": "Invalid or missing X-API-Key header"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Not found",
+              "message": "Event not found"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Internal server error",
+              "message": "An unexpected error occurred"
+            }
+          }
+        }
+      }
+    }
+  }
+}

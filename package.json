@@ -1,0 +1,33 @@
+{
+  "name": "aws-serverless-product-analytics",
+  "version": "0.1.0",
+  "description": "Self-hosted serverless product analytics platform on AWS",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "deploy": "turbo run deploy",
+    "destroy": "cd packages/cdk && pnpm run destroy",
+    "synth": "cd packages/cdk && pnpm run synth",
+    "dev": "turbo run dev --parallel"
+  },
+  "keywords": [
+    "analytics",
+    "serverless",
+    "aws",
+    "cdk",
+    "product-analytics",
+    "self-hosted"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.10.4",
+    "turbo": "^2.7.2",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@10.26.2",
+  "workspaces": [
+    "packages/*"
+  ]
+}

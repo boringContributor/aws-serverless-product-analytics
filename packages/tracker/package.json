@@ -1,0 +1,14 @@
+{
+  "name": "@analytics/tracker",
+  "version": "0.1.0",
+  "description": "Lightweight client-side tracking script for product analytics",
+  "main": "dist/analytics.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.11",
+    "typescript": "^5.3.3"
+  }
+}

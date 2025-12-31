@@ -1,0 +1,402 @@
+openapi: 3.0.3
+info:
+  title: Product Analytics Ingestion API
+  description: |
+    REST API for ingesting product analytics events.
+
+    This API provides endpoints for tracking page views and custom events from web and mobile applications.
+    All events are processed asynchronously and return immediately with a 202 Accepted response.
+
+    ## Authentication
+
+    Currently, this API is public and does not require authentication. Events are throttled at the API Gateway level.
+    Future versions will support API key authentication.
+
+    ## Rate Limits
+
+    - 1000 requests per second
+    - 2000 burst capacity
+
+    ## Event Processing
+
+    Events are queued for async processing. Typical latency from ingestion to storage is 5-15 seconds.
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/yourusername/aws-serverless-product-analytics
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production API
+  - url: https://api-staging.example.com/v1
+    description: Staging API
+
+tags:
+  - name: Ingestion
+    description: Event ingestion endpoints
+  - name: Health
+    description: Health check and status
+
+paths:
+  /view:
+    post:
+      tags:
+        - Ingestion
+      summary: Track page view
+      description: |
+        Records a page view event. Use this endpoint when a user views a page in your application.
+
+        Page views are automatically tracked by the client SDK, but you can also send them manually.
+      operationId: trackPageView
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageViewEvent'
+            examples:
+              basic:
+                summary: Basic page view
+                value:
+                  projectId: "my-app-prod"
+                  url: "https://example.com/products/123"
+                  title: "Product Details"
+                  referrer: "https://google.com"
+              withUser:
+                summary: Page view with user ID
+                value:
+                  projectId: "my-app-prod"
+                  url: "https://example.com/dashboard"
+                  title: "Dashboard"
+                  userId: "user-123"
+                  sessionId: "session-456"
+      responses:
+        '202':
+          description: Page view accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingProjectId:
+                  value:
+                    error: "Invalid event payload"
+                    details: "Required fields: projectId, url"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /event:
+    post:
+      tags:
+        - Ingestion
+      summary: Track custom event
+      description: |
+        Records a custom event. Use this endpoint to track any user action or system event.
+
+        Examples: button clicks, form submissions, video plays, purchases, etc.
+      operationId: trackEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackEvent'
+            examples:
+              buttonClick:
+                summary: Button click
+                value:
+                  projectId: "my-app-prod"
+                  eventName: "button_clicked"
+                  properties:
+                    buttonId: "signup"
+                    location: "header"
+              purchase:
+                summary: Purchase event
+                value:
+                  projectId: "my-app-prod"
+                  eventName: "purchase"
+                  userId: "user-123"
+                  properties:
+                    orderId: "order-789"
+                    total: 99.99
+                    currency: "USD"
+                    items: 3
+      responses:
+        '202':
+          description: Event accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    PageViewEvent:
+      type: object
+      required:
+        - projectId
+        - url
+      properties:
+        projectId:
+          type: string
+          description: Unique identifier for your project
+          example: "my-app-prod"
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          format: uri
+          description: Full URL of the page being viewed
+          example: "https://example.com/products/123"
+        title:
+          type: string
+          description: Page title
+          example: "Product Details"
+          maxLength: 500
+        referrer:
+          type: string
+          format: uri
+          description: Referrer URL (where the user came from)
+          example: "https://google.com/search?q=product"
+        userId:
+          type: string
+          description: Unique identifier for the user (if authenticated)
+          example: "user-123"
+          maxLength: 100
+        anonymousId:
+          type: string
+          description: Anonymous user identifier (auto-generated by SDK)
+          example: "anon-456"
+          maxLength: 100
+        sessionId:
+          type: string
+          description: Session identifier (auto-generated by SDK)
+          example: "session-789"
+          maxLength: 100
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds (server-side if not provided)
+          example: 1705315200000
+        context:
+          $ref: '#/components/schemas/EventContext'
+
+    TrackEvent:
+      type: object
+      required:
+        - projectId
+        - eventName
+      properties:
+        projectId:
+          type: string
+          description: Unique identifier for your project
+          example: "my-app-prod"
+          minLength: 1
+          maxLength: 100
+        eventName:
+          type: string
+          description: Name of the event being tracked
+          example: "button_clicked"
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 100
+        userId:
+          type: string
+          description: Unique identifier for the user (if authenticated)
+          example: "user-123"
+          maxLength: 100
+        anonymousId:
+          type: string
+          description: Anonymous user identifier (auto-generated by SDK)
+          example: "anon-456"
+          maxLength: 100
+        sessionId:
+          type: string
+          description: Session identifier (auto-generated by SDK)
+          example: "session-789"
+          maxLength: 100
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds (server-side if not provided)
+          example: 1705315200000
+        properties:
+          type: object
+          description: Custom properties for the event
+          additionalProperties: true
+          example:
+            buttonId: "signup"
+            location: "header"
+            variant: "blue"
+        context:
+          $ref: '#/components/schemas/EventContext'
+
+    PageViewEventBatch:
+      type: object
+      required:
+        - type
+        - url
+      properties:
+        type:
+          type: string
+          enum: [pageview]
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        referrer:
+          type: string
+        userId:
+          type: string
+        anonymousId:
+          type: string
+        sessionId:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        context:
+          $ref: '#/components/schemas/EventContext'
+
+    TrackEventBatch:
+      type: object
+      required:
+        - type
+        - eventName
+      properties:
+        type:
+          type: string
+          enum: [track]
+        eventName:
+          type: string
+        userId:
+          type: string
+        anonymousId:
+          type: string
+        sessionId:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        properties:
+          type: object
+          additionalProperties: true
+        context:
+          $ref: '#/components/schemas/EventContext'
+
+    EventContext:
+      type: object
+      description: Additional context about the event
+      properties:
+        page:
+          type: object
+          properties:
+            url:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+            referrer:
+              type: string
+        userAgent:
+          type: string
+          description: Browser user agent string
+          example: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        locale:
+          type: string
+          description: User's locale/language
+          example: "en-US"
+        screen:
+          type: object
+          properties:
+            width:
+              type: integer
+              example: 1920
+            height:
+              type: integer
+              example: 1080
+        library:
+          type: object
+          description: SDK/library information
+          properties:
+            name:
+              type: string
+              example: "analytics.js"
+            version:
+              type: string
+              example: "1.0.0"
+
+    IngestResponse:
+      type: object
+      required:
+        - success
+        - eventsReceived
+      properties:
+        success:
+          type: boolean
+          example: true
+        eventsReceived:
+          type: integer
+          description: Number of events accepted
+          example: 1
+        message:
+          type: string
+          description: Optional message
+          example: "Events queued for processing"
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid event payload"
+        details:
+          type: string
+          description: Additional error details
+          example: "Required fields: projectId, url"
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
