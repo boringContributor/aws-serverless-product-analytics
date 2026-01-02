@@ -1,28 +1,44 @@
 /**
- * Lightweight Product Analytics Tracking Script
+ * Lightweight Product Analytics Tracking Script for SPAs
+ *
+ * Features:
+ * - Automatic SPA route tracking (pushState, replaceState, popstate)
+ * - JWT-based authentication (no anonymous tracking)
+ * - Web Vitals monitoring (LCP, FID, CLS, TTFB)
+ * - Fetch with keepalive for reliable event delivery
  *
  * Usage:
  * <script src="https://your-cdn.com/analytics.js"></script>
  * <script>
  *   Analytics.init({
- *     apiEndpoint: 'https://your-api.execute-api.us-east-1.amazonaws.com/prod',
- *     projectId: 'your-project-id',
+ *     jwtToken: 'your-jwt-token',
+ *     debug: true,
  *   });
+ *
+ *   // Update token after refresh
+ *   Analytics.setToken('new-jwt-token');
+ *
+ *   // Track custom events
+ *   Analytics.track('button_clicked', { buttonId: 'signup' });
  * </script>
  */
 
-interface AnalyticsConfig {
-  apiEndpoint: string;
-  projectId: string;
-  userId?: string;
+// API endpoint - set to your deployed backend
+const API_ENDPOINT = 'https://esxx0ecwgi.execute-api.eu-central-1.amazonaws.com/prod';
+
+export interface AnalyticsConfig {
+  jwtToken: string;
   debug?: boolean;
   trackWebVitals?: boolean;
+}
+
+export interface TrackEventProperties {
+  [key: string]: any;
 }
 
 interface TrackEventOptions {
   eventType: string;
   properties?: Record<string, any>;
-  userId?: string;
 }
 
 interface AnalyticsContext {
@@ -51,26 +67,17 @@ interface WebVitalMetric {
 
 class ProductAnalytics {
   private config: AnalyticsConfig | null = null;
-  private sessionId: string;
-  private anonymousId: string;
   private eventQueue: any[] = [];
   private isInitialized = false;
 
   constructor() {
-    this.sessionId = this.generateId();
-    this.anonymousId = this.getOrCreateAnonymousId();
+    // Session ID removed - no longer needed
   }
 
   /**
    * Initialize the analytics tracker
    */
   init(config: AnalyticsConfig): void {
-    // Check DNT header
-    if (this.isDNTEnabled()) {
-      logger.info('[Analytics] DNT header detected, tracking disabled');
-      return;
-    }
-
     this.config = config;
     this.isInitialized = true;
 
@@ -143,18 +150,17 @@ class ProductAnalytics {
         url: window.location.href,
         title: document.title,
         path: window.location.pathname,
-        referrer: document.referrer,
       },
     });
   }
 
   /**
-   * Identify a user
+   * Update JWT token (e.g., after token refresh)
    */
-  identify(userId: string): void {
+  setToken(jwtToken: string): void {
     if (this.config) {
-      this.config.userId = userId;
-      this.log('User identified', userId);
+      this.config.jwtToken = jwtToken;
+      this.log('JWT token updated');
     }
   }
 
@@ -251,64 +257,40 @@ class ProductAnalytics {
   }
 
   /**
-   * Check if Do Not Track is enabled
-   */
-  private isDNTEnabled(): boolean {
-    return (
-      typeof navigator !== 'undefined' &&
-      (navigator.doNotTrack === '1' ||
-        (window as any).doNotTrack === '1' ||
-        (navigator as any).msDoNotTrack === '1')
-    );
-  }
-
-  /**
    * Send an event to the API
+   * Uses compressed field names matching Vercel Analytics format
    */
   private sendEvent(options: TrackEventOptions): void {
     if (!this.config) return;
 
-    const event = {
-      projectId: this.config.projectId,
-      eventType: options.eventType,
-      timestamp: Date.now(),
-      sessionId: this.sessionId,
-      userId: options.userId || this.config.userId,
-      anonymousId: this.anonymousId,
-      properties: options.properties || {},
-      context: this.getContext(),
+    const ctx = this.getContext();
+
+    // Compressed payload - Vercel Analytics format
+    const event: any = {
+      en: options.eventType,           // event name
+      ts: Date.now(),                  // timestamp
+      o: ctx.page.url,                 // origin (full URL)
+      r: ctx.page.referrer,            // referrer
+      sw: ctx.screen.width,            // screen width
+      sh: ctx.screen.height,           // screen height
     };
+
+    // Add event data if properties exist
+    if (options.properties && Object.keys(options.properties).length > 0) {
+      event.ed = options.properties;   // event data
+    }
 
     this.log('Tracking event', event);
 
     // Determine endpoint based on event type
     const endpoint = this.getEndpoint(options.eventType);
 
-    // Send via sendBeacon for reliability (works even on page unload)
-    if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify(event)], {
-        type: 'application/json',
-      });
-      const success = navigator.sendBeacon(endpoint, blob);
-
-      if (!success) {
-        this.log('sendBeacon failed, falling back to fetch');
-        this.sendViaFetch(endpoint, event);
-      }
-    } else {
-      // Fallback to fetch
-      this.sendViaFetch(endpoint, event);
-    }
-  }
-
-  /**
-   * Send event via fetch API
-   */
-  private sendViaFetch(endpoint: string, event: any): void {
+    // Send via fetch with keepalive
     fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.jwtToken}`,
       },
       body: JSON.stringify(event),
       keepalive: true,
@@ -321,9 +303,7 @@ class ProductAnalytics {
    * Get the appropriate endpoint for the event type
    */
   private getEndpoint(eventType: string): string {
-    if (!this.config) return '';
-
-    const baseUrl = this.config.apiEndpoint.replace(/\/$/, '');
+    const baseUrl = API_ENDPOINT.replace(/\/$/, '');
 
     if (eventType === 'pageview') {
       return `${baseUrl}/view`;
@@ -356,38 +336,6 @@ class ProductAnalytics {
   }
 
   /**
-   * Get or create anonymous ID (persisted in localStorage)
-   */
-  private getOrCreateAnonymousId(): string {
-    const key = 'analytics_anonymous_id';
-    let id = '';
-
-    try {
-      id = localStorage.getItem(key) || '';
-    } catch (e) {
-      // LocalStorage may be blocked
-    }
-
-    if (!id) {
-      id = this.generateId();
-      try {
-        localStorage.setItem(key, id);
-      } catch (e) {
-        // Ignore if can't set
-      }
-    }
-
-    return id;
-  }
-
-  /**
-   * Generate a random ID
-   */
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
    * Flush any queued events
    */
   private flush(): void {
@@ -400,7 +348,7 @@ class ProductAnalytics {
    */
   private log(message: string, data?: any): void {
     if (this.config?.debug) {
-      logger.info(`[Analytics] ${message}`, data);
+      console.info(`[Analytics] ${message}`, data);
     }
   }
 }

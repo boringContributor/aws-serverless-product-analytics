@@ -9,8 +9,8 @@ info:
 
     ## Authentication
 
-    Currently, this API is public and does not require authentication. Events are throttled at the API Gateway level.
-    Future versions will support API key authentication.
+    All requests must include a Bearer JWT token in the Authorization header.
+    The JWT token contains user information and is decoded by the backend.
 
     ## Rate Limits
 
@@ -49,30 +49,47 @@ paths:
       description: |
         Records a page view event. Use this endpoint when a user views a page in your application.
 
-        Page views are automatically tracked by the client SDK, but you can also send them manually.
+        Page views are automatically tracked by the client SDK using compressed field names.
+
+        **Note**: User-Agent should be extracted from the HTTP request header, not included in the payload.
       operationId: trackPageView
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer JWT token containing user information
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PageViewEvent'
+              $ref: '#/components/schemas/CompressedEvent'
             examples:
               basic:
                 summary: Basic page view
                 value:
-                  projectId: "my-app-prod"
-                  url: "https://example.com/products/123"
-                  title: "Product Details"
-                  referrer: "https://google.com"
-              withUser:
-                summary: Page view with user ID
+                  en: "pageview"
+                  ts: 1767345974789
+                  sid: "1735819200000-abc123def"
+                  o: "https://example.com/products/123"
+                  r: "https://google.com"
+                  sw: 1920
+                  sh: 1080
+              withEventData:
+                summary: Page view with custom data
                 value:
-                  projectId: "my-app-prod"
-                  url: "https://example.com/dashboard"
-                  title: "Dashboard"
-                  userId: "user-123"
-                  sessionId: "session-456"
+                  en: "pageview"
+                  ts: 1767345974789
+                  sid: "1735819200000-abc123def"
+                  o: "https://example.com/dashboard"
+                  r: ""
+                  sw: 1920
+                  sh: 1080
+                  ed:
+                    customField: "value"
       responses:
         '202':
           description: Page view accepted for processing
@@ -87,10 +104,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                missingProjectId:
+                missingFields:
                   value:
                     error: "Invalid event payload"
-                    details: "Required fields: projectId, url"
+                    details: "Required fields: en, ts, sid, o, r, sw, sh"
         '429':
           description: Rate limit exceeded
           content:
@@ -112,34 +129,52 @@ paths:
       description: |
         Records a custom event. Use this endpoint to track any user action or system event.
 
-        Examples: button clicks, form submissions, video plays, purchases, etc.
+        Examples: button clicks, form submissions, video plays, purchases, web vitals, etc.
+
+        **Note**: User-Agent should be extracted from the HTTP request header, not included in the payload.
       operationId: trackEvent
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          description: Bearer JWT token containing user information
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TrackEvent'
+              $ref: '#/components/schemas/CompressedEvent'
             examples:
               buttonClick:
                 summary: Button click
                 value:
-                  projectId: "my-app-prod"
-                  eventName: "button_clicked"
-                  properties:
+                  en: "button_clicked"
+                  ts: 1767345980123
+                  sid: "1735819200000-abc123def"
+                  o: "https://example.com/dashboard"
+                  r: ""
+                  sw: 1920
+                  sh: 1080
+                  ed:
                     buttonId: "signup"
                     location: "header"
-              purchase:
-                summary: Purchase event
+              webVital:
+                summary: Web vital event
                 value:
-                  projectId: "my-app-prod"
-                  eventName: "purchase"
-                  userId: "user-123"
-                  properties:
-                    orderId: "order-789"
-                    total: 99.99
-                    currency: "USD"
-                    items: 3
+                  en: "webvital"
+                  ts: 1767345985456
+                  sid: "1735819200000-abc123def"
+                  o: "https://example.com/dashboard"
+                  r: ""
+                  sw: 1920
+                  sh: 1080
+                  ed:
+                    metric: "LCP"
+                    value: 1234
+                    rating: "good"
       responses:
         '202':
           description: Event accepted for processing
@@ -168,6 +203,60 @@ paths:
 
 components:
   schemas:
+    CompressedEvent:
+      type: object
+      required:
+        - en
+        - ts
+        - o
+        - r
+        - sw
+        - sh
+      properties:
+        en:
+          type: string
+          description: Event name (e.g., "pageview", "button_clicked", "webvital")
+          example: "pageview"
+          minLength: 1
+          maxLength: 100
+        ts:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          example: 1767345974789
+        sid:
+          type: string
+          description: Optional session identifier (kept for client compatibility but not required)
+          example: "1735819200000-abc123def"
+          minLength: 1
+          maxLength: 100
+        o:
+          type: string
+          format: uri
+          description: Origin (full page URL)
+          example: "https://example.com/dashboard"
+        r:
+          type: string
+          description: Referrer URL (can be empty string)
+          example: "https://google.com"
+        sw:
+          type: integer
+          description: Screen width in pixels
+          example: 1920
+          minimum: 1
+        sh:
+          type: integer
+          description: Screen height in pixels
+          example: 1080
+          minimum: 1
+        ed:
+          type: object
+          description: Optional event data (custom properties)
+          additionalProperties: true
+          example:
+            buttonId: "signup"
+            location: "header"
+
     PageViewEvent:
       type: object
       required:

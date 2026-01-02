@@ -10,9 +10,16 @@ pub struct AppState {
     pub stream_name: String,
 }
 
-/// CORS headers for all responses
-pub const RESPONSE_HEADERS: [(&str, &str); 3] = [
+/// CORS headers for JSON responses
+pub const JSON_RESPONSE_HEADERS: [(&str, &str); 3] = [
     ("Content-Type", "application/json"),
+    ("Access-Control-Allow-Origin", "*"),
+    ("Access-Control-Allow-Headers", "Content-Type, X-API-Key"),
+];
+
+/// CORS headers for text responses
+pub const TEXT_RESPONSE_HEADERS: [(&str, &str); 3] = [
+    ("Content-Type", "text/plain"),
     ("Access-Control-Allow-Origin", "*"),
     ("Access-Control-Allow-Headers", "Content-Type, X-API-Key"),
 ];
@@ -22,7 +29,21 @@ pub fn create_response(status_code: u16, body: serde_json::Value) -> Response<Bo
     let mut response = Response::builder()
         .status(status_code);
 
-    for (key, value) in RESPONSE_HEADERS.iter() {
+    for (key, value) in JSON_RESPONSE_HEADERS.iter() {
+        response = response.header(*key, *value);
+    }
+
+    response
+        .body(Body::Text(body.to_string()))
+        .unwrap()
+}
+
+/// Creates a simple text response
+pub fn create_text_response(status_code: u16, body: &str) -> Response<Body> {
+    let mut response = Response::builder()
+        .status(status_code);
+
+    for (key, value) in TEXT_RESPONSE_HEADERS.iter() {
         response = response.header(*key, *value);
     }
 

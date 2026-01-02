@@ -28,6 +28,7 @@
   },
   "packageManager": "pnpm@10.26.2",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ]
 }

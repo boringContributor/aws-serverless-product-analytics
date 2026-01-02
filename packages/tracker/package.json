@@ -2,9 +2,22 @@
   "name": "@analytics/tracker",
   "version": "0.1.0",
   "description": "Lightweight client-side tracking script for product analytics",
-  "main": "dist/analytics.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./script": "./dist/analytics.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "node build.js && tsc --emitDeclarationOnly",
     "dev": "node build.js --watch"
   },
   "devDependencies": {

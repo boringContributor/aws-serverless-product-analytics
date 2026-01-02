@@ -41,8 +41,8 @@ export class QueryApi extends Construct {
           beforeBundling: () => [],
           beforeInstall: () => [],
           // Add the OpenAPI specification to the Lambda bundle
-          afterBundling: (inputDir: string, outputDir: string) => [
-            `cp "${inputDir}/openapi.yml" "${outputDir}/openapi.yml"`,
+          afterBundling: (_inputDir: string, outputDir: string) => [
+            `cp "${path.join(__dirname, '../../query/openapi.yml')}" "${outputDir}/openapi.yml"`,
           ],
         },
       },

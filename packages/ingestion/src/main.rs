@@ -21,9 +21,17 @@ async fn function_handler(event: Request, state: Arc<AppState>) -> Result<Respon
     // Parse request body
     let body = event.body();
     let body_str = match body {
-        Body::Text(s) => s,
-        Body::Binary(b) => std::str::from_utf8(b)?,
+        Body::Text(s) => {
+            tracing::debug!("Received text body: {}", s);
+            s
+        }
+        Body::Binary(b) => {
+            let decoded = std::str::from_utf8(b)?;
+            tracing::debug!("Received binary body (decoded): {}", decoded);
+            decoded
+        }
         Body::Empty => {
+            tracing::warn!("Received empty body");
             return Ok(create_error_response(400, "Missing request body"));
         }
     };
